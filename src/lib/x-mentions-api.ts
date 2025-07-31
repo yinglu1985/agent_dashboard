@@ -29,6 +29,8 @@ class XMentionsAPI {
       const params = new URLSearchParams({
         query,
         'tweet.fields': 'created_at,public_metrics,context_annotations',
+        'user.fields': 'public_metrics',
+        'expansions': 'author_id',
         'start_time': startDate.toISOString(),
         'end_time': endDate.toISOString(),
         'max_results': '100'
@@ -56,33 +58,52 @@ class XMentionsAPI {
 
   private processXApiResponse(brand: string, apiData: Record<string, unknown>, days: number): BrandMentionSummary {
     const tweets = (apiData.data as Record<string, unknown>[]) || [];
+    const includes = apiData.includes as Record<string, unknown> | undefined;
+    const users = (includes?.users as Record<string, unknown>[]) || [];
     const dailyMentions: XMentionData[] = [];
     
-    // Group tweets by date
-    const mentionsByDate: { [key: string]: number } = {};
+    // Create user lookup for follower counts
+    const userLookup = new Map();
+    users.forEach(user => {
+      const metrics = user.public_metrics as Record<string, unknown>;
+      userLookup.set(user.id, metrics?.followers_count || 0);
+    });
+    
+    // Group tweets by date with exposure calculation
+    const mentionsByDate: { [key: string]: { mentions: number; exposure: number; totalFollowers: number } } = {};
     
     for (let i = 0; i < days; i++) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
-      mentionsByDate[dateStr] = 0;
+      mentionsByDate[dateStr] = { mentions: 0, exposure: 0, totalFollowers: 0 };
     }
 
     tweets.forEach((tweet: Record<string, unknown>) => {
       const tweetDate = new Date(tweet.created_at as string).toISOString().split('T')[0];
       if (mentionsByDate.hasOwnProperty(tweetDate)) {
-        mentionsByDate[tweetDate]++;
+        const authorId = tweet.author_id as string;
+        const followerCount = userLookup.get(authorId) || this.getEstimatedFollowers();
+        const publicMetrics = tweet.public_metrics as Record<string, unknown>;
+        const impressions = this.calculateTweetExposure(followerCount, publicMetrics);
+        
+        mentionsByDate[tweetDate].mentions++;
+        mentionsByDate[tweetDate].exposure += impressions;
+        mentionsByDate[tweetDate].totalFollowers += followerCount;
       }
     });
 
     // Convert to XMentionData array
-    Object.entries(mentionsByDate).forEach(([date, mentions]) => {
+    Object.entries(mentionsByDate).forEach(([date, data]) => {
+      const avgFollowers = data.mentions > 0 ? Math.floor(data.totalFollowers / data.mentions) : 0;
       dailyMentions.push({
         brand,
         date,
-        mentions,
-        sentiment: this.analyzeSentiment(mentions),
-        engagement: Math.floor(mentions * (20 + Math.random() * 80)),
+        mentions: data.mentions,
+        sentiment: this.analyzeSentiment(data.mentions),
+        engagement: Math.floor(data.mentions * (20 + Math.random() * 80)),
+        exposure: data.exposure,
+        avgFollowers,
         source: 'x-api',
         lastUpdated: new Date()
       });
@@ -90,6 +111,7 @@ class XMentionsAPI {
 
     const totalMentions = dailyMentions.reduce((sum, day) => sum + day.mentions, 0);
     const averageDaily = Math.round(totalMentions / days);
+    const exposureMetrics = this.calculateExposureMetrics(dailyMentions);
 
     return {
       brand,
@@ -98,13 +120,15 @@ class XMentionsAPI {
       averageDaily,
       growthRate: this.calculateGrowthRate(dailyMentions),
       topHashtags: this.extractTopHashtags(tweets),
-      sentimentBreakdown: this.calculateSentimentBreakdown(dailyMentions)
+      sentimentBreakdown: this.calculateSentimentBreakdown(dailyMentions),
+      exposureMetrics
     };
   }
 
   private generateMockMentions(brand: string, days: number): BrandMentionSummary {
     const dailyMentions: XMentionData[] = [];
     const baselineMentions = this.getBrandBaseline(brand);
+    const avgFollowers = this.getBrandFollowerBaseline(brand);
 
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
@@ -115,6 +139,11 @@ class XMentionsAPI {
       const variance = 0.3;
       const randomFactor = 1 + (Math.random() - 0.5) * variance;
       const mentions = Math.floor(baselineMentions * randomFactor);
+      
+      // Calculate mock exposure based on mentions and average followers
+      const followerVariance = 1 + (Math.random() - 0.5) * 0.4;
+      const dayAvgFollowers = Math.floor(avgFollowers * followerVariance);
+      const exposure = this.calculateMockExposure(mentions, dayAvgFollowers);
 
       dailyMentions.push({
         brand,
@@ -122,6 +151,8 @@ class XMentionsAPI {
         mentions,
         sentiment: this.analyzeSentiment(mentions),
         engagement: Math.floor(mentions * (20 + Math.random() * 80)),
+        exposure,
+        avgFollowers: dayAvgFollowers,
         source: 'mock',
         lastUpdated: new Date()
       });
@@ -129,6 +160,7 @@ class XMentionsAPI {
 
     const totalMentions = dailyMentions.reduce((sum, day) => sum + day.mentions, 0);
     const averageDaily = Math.round(totalMentions / days);
+    const exposureMetrics = this.calculateExposureMetrics(dailyMentions);
 
     return {
       brand,
@@ -137,7 +169,8 @@ class XMentionsAPI {
       averageDaily,
       growthRate: this.calculateGrowthRate(dailyMentions),
       topHashtags: this.generateMockHashtags(brand),
-      sentimentBreakdown: this.calculateSentimentBreakdown(dailyMentions)
+      sentimentBreakdown: this.calculateSentimentBreakdown(dailyMentions),
+      exposureMetrics
     };
   }
 
@@ -218,6 +251,93 @@ class XMentionsAPI {
       positive: Math.round((breakdown.positive / total) * 100),
       negative: Math.round((breakdown.negative / total) * 100),
       neutral: Math.round((breakdown.neutral / total) * 100)
+    };
+  }
+
+  private getBrandFollowerBaseline(brand: string): number {
+    const followerBaselines: { [key: string]: number } = {
+      'chatgpt': 15000,
+      'claude': 8000,
+      'openai': 25000,
+      'anthropic': 12000,
+      'google': 50000,
+      'microsoft': 30000,
+      'apple': 80000,
+      'tesla': 45000,
+      'netflix': 20000,
+      'amazon': 35000,
+      'meta': 25000,
+      'twitter': 15000,
+      'x': 20000
+    };
+
+    return followerBaselines[brand.toLowerCase()] || Math.floor(5000 + Math.random() * 15000);
+  }
+
+  private calculateTweetExposure(followerCount: number, publicMetrics: Record<string, unknown>): number {
+    // Base exposure is follower count
+    let exposure = followerCount;
+    
+    // Add engagement multipliers
+    const retweets = (publicMetrics?.retweet_count as number) || 0;
+    const likes = (publicMetrics?.like_count as number) || 0;
+    const replies = (publicMetrics?.reply_count as number) || 0;
+    
+    // Engagement extends reach beyond followers
+    const engagementMultiplier = 1 + (retweets * 0.5) + (likes * 0.1) + (replies * 0.2);
+    exposure *= Math.min(engagementMultiplier, 5); // Cap at 5x multiplier
+    
+    return Math.floor(exposure);
+  }
+
+  private calculateMockExposure(mentions: number, avgFollowers: number): number {
+    // Simulate realistic exposure patterns
+    let totalExposure = 0;
+    
+    for (let i = 0; i < mentions; i++) {
+      // Each mention has base follower reach plus engagement multiplier
+      const baseReach = avgFollowers * (0.8 + Math.random() * 0.4); // 80-120% of followers see it
+      const engagementMultiplier = 1 + Math.random() * 0.5; // 1-1.5x from retweets/shares
+      totalExposure += baseReach * engagementMultiplier;
+    }
+    
+    return Math.floor(totalExposure);
+  }
+
+  private getEstimatedFollowers(): number {
+    // Return estimated follower count when not available from API
+    return Math.floor(1000 + Math.random() * 10000);
+  }
+
+  private calculateExposureMetrics(dailyMentions: XMentionData[]): {
+    totalExposure: number;
+    averageDailyExposure: number;
+    exposureGrowthRate: number;
+    avgFollowersPerMention: number;
+    reachMultiplier: number;
+  } {
+    const totalExposure = dailyMentions.reduce((sum, day) => sum + (day.exposure || 0), 0);
+    const totalMentions = dailyMentions.reduce((sum, day) => sum + day.mentions, 0);
+    const averageDailyExposure = Math.floor(totalExposure / dailyMentions.length);
+    
+    // Calculate exposure growth rate (recent 3 days vs previous 3 days)
+    const recentExposure = dailyMentions.slice(-3).reduce((sum, day) => sum + (day.exposure || 0), 0) / 3;
+    const previousExposure = dailyMentions.slice(-6, -3).reduce((sum, day) => sum + (day.exposure || 0), 0) / 3;
+    const exposureGrowthRate = previousExposure > 0 ? Math.round(((recentExposure - previousExposure) / previousExposure) * 100) : 0;
+    
+    // Calculate average followers per mention
+    const totalFollowers = dailyMentions.reduce((sum, day) => sum + ((day.avgFollowers || 0) * day.mentions), 0);
+    const avgFollowersPerMention = totalMentions > 0 ? Math.floor(totalFollowers / totalMentions) : 0;
+    
+    // Calculate reach multiplier (how many people see each mention on average)
+    const reachMultiplier = totalMentions > 0 ? Math.round((totalExposure / totalMentions) / 100) / 10 : 0;
+    
+    return {
+      totalExposure,
+      averageDailyExposure,
+      exposureGrowthRate,
+      avgFollowersPerMention,
+      reachMultiplier
     };
   }
 }

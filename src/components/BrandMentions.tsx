@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { BrandMentionSummary } from '@/types';
 import { getXMentionsAPI } from '@/lib/x-mentions-api';
-import { Search, TrendingUp, TrendingDown, Hash, MessageCircle, Database } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, Hash, MessageCircle, Database, Eye, Users } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export function BrandMentions() {
@@ -129,7 +129,7 @@ export function BrandMentions() {
       {mentionData && !loading && (
         <div className="space-y-6">
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
             <div className="bg-white p-6 rounded-lg shadow-sm border">
               <div className="flex items-center justify-between">
                 <div>
@@ -143,8 +143,22 @@ export function BrandMentions() {
             <div className="bg-white p-6 rounded-lg shadow-sm border">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Daily Average</p>
-                  <p className="text-2xl font-bold text-gray-900">{mentionData.averageDaily.toLocaleString()}</p>
+                  <p className="text-sm text-gray-500">Total Exposure</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {mentionData.exposureMetrics?.totalExposure?.toLocaleString() || '0'}
+                  </p>
+                </div>
+                <Eye className="w-8 h-8 text-purple-600" />
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Daily Avg Exposure</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {mentionData.exposureMetrics?.averageDailyExposure?.toLocaleString() || '0'}
+                  </p>
                 </div>
                 <Database className="w-8 h-8 text-green-600" />
               </div>
@@ -153,12 +167,12 @@ export function BrandMentions() {
             <div className="bg-white p-6 rounded-lg shadow-sm border">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">7-Day Growth</p>
-                  <p className={`text-2xl font-bold ${mentionData.growthRate && mentionData.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {mentionData.growthRate}%
+                  <p className="text-sm text-gray-500">Exposure Growth</p>
+                  <p className={`text-2xl font-bold ${mentionData.exposureMetrics?.exposureGrowthRate && mentionData.exposureMetrics.exposureGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {mentionData.exposureMetrics?.exposureGrowthRate || 0}%
                   </p>
                 </div>
-                {mentionData.growthRate && mentionData.growthRate >= 0 ? 
+                {mentionData.exposureMetrics?.exposureGrowthRate && mentionData.exposureMetrics.exposureGrowthRate >= 0 ? 
                   <TrendingUp className="w-8 h-8 text-green-600" /> : 
                   <TrendingDown className="w-8 h-8 text-red-600" />
                 }
@@ -168,12 +182,24 @@ export function BrandMentions() {
             <div className="bg-white p-6 rounded-lg shadow-sm border">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Data Source</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {mentionData.dailyMentions[0]?.source === 'x-api' ? 'X API' : 'Mock Data'}
+                  <p className="text-sm text-gray-500">Avg Followers</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {mentionData.exposureMetrics?.avgFollowersPerMention?.toLocaleString() || '0'}
                   </p>
                 </div>
-                <Hash className="w-8 h-8 text-purple-600" />
+                <Users className="w-8 h-8 text-orange-600" />
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Reach Multiplier</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {mentionData.exposureMetrics?.reachMultiplier || 0}x
+                  </p>
+                </div>
+                <Hash className="w-8 h-8 text-indigo-600" />
               </div>
             </div>
           </div>
@@ -204,6 +230,73 @@ export function BrandMentions() {
                   />
                 </LineChart>
               </ResponsiveContainer>
+            </div>
+
+            {/* Daily Exposure Trend */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Daily Exposure Trend</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={mentionData.dailyMentions}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="date" 
+                    tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  />
+                  <YAxis />
+                  <Tooltip 
+                    labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                    formatter={(value: number) => [value.toLocaleString(), 'Exposure']}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="exposure" 
+                    stroke="#8B5CF6" 
+                    strokeWidth={2}
+                    dot={{ fill: '#8B5CF6', strokeWidth: 2, r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Additional Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Exposure Insights */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Exposure Insights</h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Total Potential Reach</span>
+                  <span className="font-semibold text-gray-900">
+                    {mentionData.exposureMetrics?.totalExposure?.toLocaleString() || '0'} people
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Average Daily Reach</span>
+                  <span className="font-semibold text-gray-900">
+                    {mentionData.exposureMetrics?.averageDailyExposure?.toLocaleString() || '0'} people
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Reach per Mention</span>
+                  <span className="font-semibold text-gray-900">
+                    {mentionData.totalMentions > 0 ? 
+                      Math.floor((mentionData.exposureMetrics?.totalExposure || 0) / mentionData.totalMentions).toLocaleString() 
+                      : '0'} people
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Exposure Growth Rate</span>
+                  <span className={`font-semibold ${mentionData.exposureMetrics?.exposureGrowthRate && mentionData.exposureMetrics.exposureGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {mentionData.exposureMetrics?.exposureGrowthRate || 0}%
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-gray-200">
+                  <div className="text-xs text-gray-500">
+                    * Exposure = Total potential audience reach across all mentions
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Sentiment Breakdown */}

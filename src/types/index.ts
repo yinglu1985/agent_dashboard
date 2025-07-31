@@ -60,6 +60,8 @@ export interface XMentionData {
   mentions: number;
   sentiment?: 'positive' | 'negative' | 'neutral';
   engagement?: number;
+  exposure?: number; // Total potential reach/impressions
+  avgFollowers?: number; // Average followers per mentioning user
   source: 'x-api' | 'mock';
   lastUpdated: Date;
 }
@@ -75,5 +77,12 @@ export interface BrandMentionSummary {
     positive: number;
     negative: number;
     neutral: number;
+  };
+  exposureMetrics?: {
+    totalExposure: number;
+    averageDailyExposure: number;
+    exposureGrowthRate: number;
+    avgFollowersPerMention: number;
+    reachMultiplier: number; // exposure/mentions ratio
   };
 }
