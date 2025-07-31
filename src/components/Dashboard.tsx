@@ -114,7 +114,7 @@ export function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
           <p className="text-gray-600">Loading traffic data...</p>
@@ -124,82 +124,80 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                AI Agent Dashboard
-              </h1>
-              <p className="text-gray-600 mt-2">
-                Monthly traffic analytics for AI agent products
-              </p>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
-                <Database className="w-4 h-4" />
-                <span>{dataSource === 'similarweb' ? 'SimilarWeb API' : 'Mock Data'}</span>
-              </div>
-              
-              <button
-                onClick={loadTrafficData}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Refresh</span>
-              </button>
-            </div>
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Traffic Analytics
+            </h2>
+            <p className="text-gray-600 mt-1">
+              Monthly traffic analytics for AI agent products
+            </p>
           </div>
           
-          {lastUpdated && (
-            <p className="text-sm text-gray-500 mt-2">
-              Last updated: {lastUpdated.toLocaleString()}
-            </p>
-          )}
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <Database className="w-4 h-4" />
+              <span>{dataSource === 'similarweb' ? 'SimilarWeb API' : 'Mock Data'}</span>
+            </div>
+            
+            <button
+              onClick={loadTrafficData}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+        
+        {lastUpdated && (
+          <p className="text-sm text-gray-500 mt-2">
+            Last updated: {lastUpdated.toLocaleString()}
+          </p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-1">
+          <FilterControls
+            filters={filters}
+            products={AGENT_PRODUCTS}
+            onFiltersChange={setFilters}
+          />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-1">
-            <FilterControls
-              filters={filters}
+        <div className="lg:col-span-3 space-y-6">
+          {filters.selectedProducts.length > 0 && (
+            <TrafficChart
+              data={trafficData}
               products={AGENT_PRODUCTS}
-              onFiltersChange={setFilters}
+              selectedProducts={filters.selectedProducts}
             />
-          </div>
+          )}
 
-          <div className="lg:col-span-3 space-y-6">
-            {filters.selectedProducts.length > 0 && (
-              <TrafficChart
-                data={trafficData}
-                products={AGENT_PRODUCTS}
-                selectedProducts={filters.selectedProducts}
-              />
-            )}
-
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Agent Products ({filteredProducts.length})
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filteredProducts.map(product => {
-                  const currentData = trafficData.get(product.id)?.find(d => d.month === currentMonth);
-                  const previousData = trafficData.get(product.id)?.find(d => d.month === previousMonth);
-                  
-                  return (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      currentMonthData={currentData}
-                      previousMonthData={previousData}
-                      isSelected={filters.selectedProducts.includes(product.id)}
-                      onToggleSelect={handleProductToggle}
-                    />
-                  );
-                })}
-              </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Agent Products ({filteredProducts.length})
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filteredProducts.map(product => {
+                const currentData = trafficData.get(product.id)?.find(d => d.month === currentMonth);
+                const previousData = trafficData.get(product.id)?.find(d => d.month === previousMonth);
+                
+                return (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    currentMonthData={currentData}
+                    previousMonthData={previousData}
+                    isSelected={filters.selectedProducts.includes(product.id)}
+                    onToggleSelect={handleProductToggle}
+                  />
+                );
+              })}
             </div>
           </div>
         </div>

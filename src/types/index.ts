@@ -53,3 +53,27 @@ export interface SimilarWebApiResponse {
     visits: number;
   }>;
 }
+
+export interface XMentionData {
+  brand: string;
+  date: string; // YYYY-MM-DD format
+  mentions: number;
+  sentiment?: 'positive' | 'negative' | 'neutral';
+  engagement?: number;
+  source: 'x-api' | 'mock';
+  lastUpdated: Date;
+}
+
+export interface BrandMentionSummary {
+  brand: string;
+  totalMentions: number;
+  dailyMentions: XMentionData[];
+  averageDaily: number;
+  growthRate?: number; // 7-day growth
+  topHashtags?: string[];
+  sentimentBreakdown?: {
+    positive: number;
+    negative: number;
+    neutral: number;
+  };
+}
