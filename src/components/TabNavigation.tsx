@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { BarChart3, MessageSquare } from 'lucide-react';
+import { BarChart3, MessageSquare, Brain } from 'lucide-react';
 
-type TabType = 'dashboard' | 'mentions';
+type TabType = 'dashboard' | 'mentions' | 'genai-exposure';
 
 interface TabNavigationProps {
   activeTab: TabType;
@@ -23,6 +23,12 @@ export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
       name: 'X Mentions',
       icon: MessageSquare,
       description: 'Brand mentions on X (Twitter)'
+    },
+    {
+      id: 'genai-exposure' as TabType,
+      name: 'GenAI Exposure',
+      icon: Brain,
+      description: 'Brand exposure in AI responses'
     }
   ];
 

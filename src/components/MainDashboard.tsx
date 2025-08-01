@@ -3,9 +3,10 @@
 import React, { useState } from 'react';
 import { Dashboard } from './Dashboard';
 import { BrandMentions } from './BrandMentions';
+import { GenAIExposure } from './GenAIExposure';
 import { TabNavigation } from './TabNavigation';
 
-type TabType = 'dashboard' | 'mentions';
+type TabType = 'dashboard' | 'mentions' | 'genai-exposure';
 
 export function MainDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
@@ -27,6 +28,7 @@ export function MainDashboard() {
         <div className="tab-content">
           {activeTab === 'dashboard' && <Dashboard />}
           {activeTab === 'mentions' && <BrandMentions />}
+          {activeTab === 'genai-exposure' && <GenAIExposure />}
         </div>
       </div>
     </div>

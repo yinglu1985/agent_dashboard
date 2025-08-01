@@ -86,3 +86,59 @@ export interface BrandMentionSummary {
     reachMultiplier: number; // exposure/mentions ratio
   };
 }
+
+export interface GenAIPrompt {
+  id: string;
+  category: string;
+  prompt: string;
+  targetBrand: string;
+  context: string;
+}
+
+export interface GenAIResponse {
+  promptId: string;
+  aiTool: 'chatgpt' | 'gemini' | 'claude' | 'web-search';
+  response: string;
+  responseTime: number;
+  error?: string;
+  timestamp: Date;
+}
+
+export interface BrandMentionAnalysis {
+  brand: string;
+  mentioned: boolean;
+  mentionCount: number;
+  mentionPercentage: number;
+  context: string[];
+  sentiment: 'positive' | 'negative' | 'neutral';
+}
+
+export interface GenAIExposureResult {
+  targetBrand: string;
+  category: string;
+  totalPrompts: number;
+  aiToolResults: {
+    chatgpt: BrandMentionAnalysis;
+    gemini: BrandMentionAnalysis;
+    claude: BrandMentionAnalysis;
+    webSearch: BrandMentionAnalysis;
+  };
+  overallExposure: {
+    averageMentionRate: number;
+    totalMentions: number;
+    favorabilityScore: number;
+    competitiveRanking: number;
+  };
+  timestamp: Date;
+}
+
+export interface GenAIExposureSearch {
+  searchTerm: string;
+  categories: string[];
+  results: GenAIExposureResult[];
+  comparisonMetrics: {
+    topPerformingTool: string;
+    mostMentionedBrand: string;
+    averageExposureRate: number;
+  };
+}
