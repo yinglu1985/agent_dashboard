@@ -17,62 +17,124 @@ class GenAIExposureAPI {
     };
   }
 
-  // Step 1: Generate prompts for different categories
+  // Step 1: Generate dynamic prompts based on search query
   generatePrompts(targetBrand: string, categories: string[]): GenAIPrompt[] {
     const prompts: GenAIPrompt[] = [];
     
-    const promptTemplates = {
-      'general-ai': [
-        'What are the best AI assistants available today?',
-        'Which AI chatbot would you recommend for general use?',
-        'Compare different AI language models for everyday tasks',
-        'What AI tools should someone start with as a beginner?',
-        'Which conversational AI has the most helpful responses?'
-      ],
-      'coding': [
-        'Which AI coding assistants are most effective for programming?',
-        'What AI tools help with software development and debugging?',
-        'Compare AI code generation tools for developers',
-        'Which AI assistant is best for learning programming?',
-        'What are the top AI tools for code review and optimization?'
-      ],
-      'writing': [
-        'Which AI tools are best for content creation and writing?',
-        'What AI assistants help with creative writing and editing?',
-        'Compare AI writing tools for business communications',
-        'Which AI is most helpful for academic writing and research?',
-        'What are the best AI tools for copywriting and marketing?'
-      ],
-      'research': [
-        'Which AI tools are most reliable for research and fact-checking?',
-        'What AI assistants help with data analysis and insights?',
-        'Compare AI tools for academic and scientific research',
-        'Which AI is best for summarizing complex information?',
-        'What AI tools help with market research and competitive analysis?'
-      ],
-      'business': [
-        'Which AI tools are most valuable for business operations?',
-        'What AI assistants help with strategic planning and decision making?',
-        'Compare AI tools for customer service and support',
-        'Which AI is best for automating business processes?',
-        'What are the top AI tools for business analytics and reporting?'
-      ]
-    };
-
+    // Detect brand type and industry
+    const brandContext = this.analyzeBrandContext(targetBrand);
+    
     categories.forEach(category => {
-      const templates = promptTemplates[category as keyof typeof promptTemplates] || promptTemplates['general-ai'];
-      templates.forEach((template, index) => {
+      const dynamicPrompts = this.generateDynamicPrompts(targetBrand, category, brandContext);
+      dynamicPrompts.forEach((prompt, index) => {
         prompts.push({
           id: `${category}-${index}`,
           category,
-          prompt: template,
+          prompt,
           targetBrand,
-          context: `Testing exposure for ${targetBrand} in ${category} category`
+          context: `Dynamic prompt for ${targetBrand} in ${category} context`
         });
       });
     });
 
     return prompts;
+  }
+
+  private analyzeBrandContext(brand: string): {
+    type: string;
+    industry: string;
+    competitors: string[];
+    useCase: string;
+  } {
+    const lowerBrand = brand.toLowerCase();
+    
+    // AI/Tech brands
+    if (['chatgpt', 'claude', 'gemini', 'bard', 'copilot', 'jasper', 'perplexity'].includes(lowerBrand)) {
+      return {
+        type: 'ai-tool',
+        industry: 'artificial-intelligence',
+        competitors: ['ChatGPT', 'Claude', 'Gemini', 'Copilot'],
+        useCase: 'conversational AI and productivity'
+      };
+    }
+    
+    // Tech companies
+    if (['google', 'microsoft', 'openai', 'anthropic', 'meta', 'apple'].includes(lowerBrand)) {
+      return {
+        type: 'tech-company',
+        industry: 'technology',
+        competitors: ['Google', 'Microsoft', 'Apple', 'Meta'],
+        useCase: 'technology solutions and platforms'
+      };
+    }
+    
+    // Other major brands
+    if (['tesla', 'netflix', 'amazon', 'spotify'].includes(lowerBrand)) {
+      return {
+        type: 'consumer-brand',
+        industry: 'consumer-technology',
+        competitors: ['Tesla', 'Netflix', 'Amazon', 'Spotify'],
+        useCase: 'consumer products and services'
+      };
+    }
+    
+    // Default context
+    return {
+      type: 'general-brand',
+      industry: 'technology',
+      competitors: [brand],
+      useCase: 'general business solutions'
+    };
+  }
+
+  private generateDynamicPrompts(brand: string, category: string, context: { competitors: string[] }): string[] {
+    const brandName = brand;
+    const competitors = context.competitors.filter((c: string) => c.toLowerCase() !== brand.toLowerCase()).slice(0, 3);
+    
+    const promptGenerators = {
+      'general-ai': () => [
+        `What do you think about ${brandName} compared to other AI tools available today?`,
+        `If someone asked you to recommend an AI assistant, would you suggest ${brandName}? Why or why not?`,
+        `How does ${brandName} compare to ${competitors.join(', ')} in terms of overall performance?`,
+        `What are the strengths and weaknesses of ${brandName} as an AI tool?`,
+        `For general users, is ${brandName} a good choice for everyday AI assistance?`
+      ],
+      
+      'coding': () => [
+        `How effective is ${brandName} for programming and software development tasks?`,
+        `Would you recommend ${brandName} to developers over ${competitors.join(' or ')}?`,
+        `What coding capabilities does ${brandName} offer compared to other AI coding tools?`,
+        `For learning programming, how does ${brandName} compare to alternatives like ${competitors.join(', ')}?`,
+        `What are the advantages of using ${brandName} for code generation and debugging?`
+      ],
+      
+      'writing': () => [
+        `How good is ${brandName} for content creation and writing assistance?`,
+        `Compared to ${competitors.join(', ')}, how does ${brandName} perform for writing tasks?`,
+        `Would you choose ${brandName} for professional writing and content creation?`,
+        `What makes ${brandName} unique for writing compared to other AI writing tools?`,
+        `For copywriting and marketing content, is ${brandName} effective?`
+      ],
+      
+      'research': () => [
+        `How reliable is ${brandName} for research and information gathering?`,
+        `For academic research, would you trust ${brandName} over ${competitors.join(' or ')}?`,
+        `What research capabilities does ${brandName} offer that set it apart?`,
+        `How does ${brandName} handle fact-checking compared to ${competitors.join(', ')}?`,
+        `Is ${brandName} suitable for professional research and analysis work?`
+      ],
+      
+      'business': () => [
+        `How valuable is ${brandName} for business operations and decision-making?`,
+        `Would you implement ${brandName} in a business environment over ${competitors.join(' or ')}?`,
+        `What business advantages does ${brandName} provide compared to alternatives?`,
+        `For enterprise use, how does ${brandName} compare to ${competitors.join(', ')}?`,
+        `What ROI can businesses expect from implementing ${brandName}?`
+      ]
+    };
+
+    const generator = promptGenerators[category as keyof typeof promptGenerators] || promptGenerators['general-ai'];
+    return generator();
   }
 
   // Step 2: Call GenAI APIs and web search  
@@ -257,46 +319,107 @@ class GenAIExposureAPI {
   }
 
   private generateMockResponse(aiTool: string, prompt: string): string {
-    const mockResponses = {
-      'chatgpt': {
-        'ai-assistants': 'There are several excellent AI assistants available today. ChatGPT by OpenAI is widely used for conversational AI, while Claude by Anthropic offers helpful and harmless responses. Google\'s Bard (now Gemini) provides web-connected answers. Each has unique strengths depending on your needs.',
-        'coding': 'For coding assistance, ChatGPT is excellent for explaining concepts and generating code snippets. GitHub Copilot integrates directly into IDEs for real-time suggestions. Claude provides thoughtful code reviews and explanations. Consider your specific programming needs when choosing.',
-        'writing': 'ChatGPT excels at creative writing and content generation with natural language flow. Claude is particularly good at maintaining consistent tone and style. Jasper and Copy.ai are specialized for marketing copy. The best choice depends on your writing goals.',
-        'research': 'For research tasks, ChatGPT can help synthesize information and generate insights. Claude is excellent at analyzing complex topics while being transparent about limitations. Perplexity.ai combines AI with real-time web search for current information.',
-        'business': 'ChatGPT is versatile for business communications and brainstorming. Claude excels at strategic analysis and maintaining professional tone. Consider specialized business AI tools for specific industries or use cases.'
+    // Extract brand name from prompt
+    const brandMatch = prompt.match(/\b(ChatGPT|Claude|Gemini|Bard|Copilot|Tesla|Netflix|Google|Apple|Microsoft|OpenAI|Anthropic|Meta|Amazon|Spotify|Jasper|Perplexity|[A-Z][a-zA-Z]+)\b/g);
+    const targetBrand = brandMatch ? brandMatch[0] : 'Unknown';
+    
+    // Generate contextual response based on AI tool and target brand
+    return this.generateContextualResponse(aiTool, targetBrand, prompt);
+  }
+
+  private generateContextualResponse(aiTool: string, targetBrand: string, prompt: string): string {
+    const responses = this.getBrandSpecificResponses(targetBrand, prompt);
+    
+    // Add AI tool specific perspective
+    const toolPerspectives = {
+      'chatgpt': (response: string) => {
+        if (targetBrand.toLowerCase() === 'chatgpt') {
+          return response.replace('this tool', 'ChatGPT').replace('it', 'ChatGPT') + ' As ChatGPT, I aim to be helpful and accurate in my responses.';
+        }
+        return response;
       },
-      'gemini': {
-        'ai-assistants': 'The AI assistant landscape offers diverse options. Gemini (formerly Bard) provides real-time web access and multimodal capabilities. ChatGPT offers conversational depth and creativity. Claude focuses on helpful, harmless, and honest responses. Each serves different use cases effectively.',
-        'coding': 'Gemini offers integrated coding assistance with web search capabilities for up-to-date programming information. ChatGPT provides excellent code explanation and generation. Copilot offers real-time IDE integration. Choose based on your development workflow.',
-        'writing': 'Gemini provides writing assistance with access to current information and sources. ChatGPT excels at creative and conversational writing. Claude maintains consistent quality and tone. Consider your specific writing style and requirements.',
-        'research': 'Gemini combines AI capabilities with real-time web search for current research. ChatGPT helps with analysis and synthesis of information. Claude provides thorough, well-reasoned responses. Each offers unique advantages for research tasks.',
-        'business': 'Gemini offers business insights with access to current market information. ChatGPT provides versatile business communication support. Claude excels at strategic thinking and analysis. Consider your specific business needs and industry.'
+      'gemini': (response: string) => {
+        if (targetBrand.toLowerCase() === 'gemini') {
+          return response.replace('this tool', 'Gemini').replace('it', 'Gemini') + ' As Gemini, I provide access to real-time information and multimodal capabilities.';
+        }
+        return response;
       },
-      'claude': {
-        'ai-assistants': 'The current AI assistant ecosystem includes several strong options. Claude (that\'s me!) aims to be helpful, harmless, and honest in conversations. ChatGPT by OpenAI is widely adopted for general conversation and creativity. Gemini by Google offers web-connected responses. Each has distinct approaches to AI assistance.',
-        'coding': 'Claude provides thoughtful code review and explanation with focus on best practices and security. ChatGPT offers creative problem-solving and code generation. Copilot integrates directly into development workflows. The choice depends on your coding style and needs.',
-        'writing': 'Claude emphasizes maintaining consistent tone, accuracy, and ethical considerations in writing tasks. ChatGPT excels at creative and conversational content. Specialized tools like Jasper focus on marketing copy. Consider your writing goals and audience.',
-        'research': 'Claude approaches research tasks with careful analysis and transparency about knowledge limitations. ChatGPT helps synthesize complex information creatively. Tools with web access provide current information. Choose based on your research methodology.',
-        'business': 'Claude offers strategic business analysis with careful consideration of ethical implications and multiple perspectives. ChatGPT provides versatile business communication support. Specialized business AI tools serve specific industry needs.'
+      'claude': (response: string) => {
+        if (targetBrand.toLowerCase() === 'claude') {
+          return response.replace('this tool', 'Claude').replace('it', 'Claude') + ' As Claude, I focus on being helpful, harmless, and honest.';
+        }
+        return response;
       },
-      'web-search': {
-        'ai-assistants': 'According to recent search results, the AI assistant market is competitive with ChatGPT leading in adoption, Claude gaining recognition for safety, and Gemini offering integrated Google services. User preferences vary based on specific needs and use cases.',
-        'coding': 'Search results indicate that GitHub Copilot dominates IDE integration, while ChatGPT and Claude are preferred for code explanation and learning. Stack Overflow discussions show growing adoption of AI coding assistants across development teams.',
-        'writing': 'Content creators report success with ChatGPT for ideation, Claude for maintaining quality, and specialized tools like Jasper for marketing. Recent surveys show mixed adoption based on writing style and industry requirements.',
-        'research': 'Academic sources suggest that AI research tools are increasingly adopted, with ChatGPT used for synthesis, Claude for analysis, and web-connected tools for current information. Best practices emphasize human oversight and verification.',
-        'business': 'Business publications report growing enterprise adoption of AI assistants, with ChatGPT for general use, Claude for sensitive communications, and industry-specific tools for specialized needs. ROI studies show positive impacts on productivity.'
+      'web-search': (response: string) => {
+        return `According to recent search results and online discussions, ${response}`;
       }
     };
 
-    // Determine response category based on prompt content
-    let category = 'ai-assistants';
-    if (prompt.toLowerCase().includes('cod')) category = 'coding';
-    else if (prompt.toLowerCase().includes('writ')) category = 'writing';
-    else if (prompt.toLowerCase().includes('research')) category = 'research';
-    else if (prompt.toLowerCase().includes('business')) category = 'business';
+    const basedResponse = responses.base;
+    const toolProcessor = toolPerspectives[aiTool as keyof typeof toolPerspectives];
+    return toolProcessor ? toolProcessor(basedResponse) : basedResponse;
+  }
 
-    const toolResponses = mockResponses[aiTool as keyof typeof mockResponses];
-    return toolResponses[category as keyof typeof toolResponses] || toolResponses['ai-assistants'];
+  private getBrandSpecificResponses(brand: string, prompt: string): { base: string; sentiment: string } {
+    const lowerBrand = brand.toLowerCase();
+    const lowerPrompt = prompt.toLowerCase();
+    
+    // Determine prompt intent
+    const isComparison = lowerPrompt.includes('compare') || lowerPrompt.includes('versus') || lowerPrompt.includes('vs');
+    const isRecommendation = lowerPrompt.includes('recommend') || lowerPrompt.includes('suggest') || lowerPrompt.includes('choose');
+    const isEvaluation = lowerPrompt.includes('good') || lowerPrompt.includes('effective') || lowerPrompt.includes('best');
+
+    // Brand-specific response templates
+    const brandResponses: { [key: string]: { positive: string; neutral: string; comparison: string } } = {
+      'chatgpt': {
+        positive: `${brand} is widely regarded as one of the leading AI assistants with strong conversational abilities and broad knowledge. It excels at creative tasks, problem-solving, and maintaining engaging dialogue. Many users appreciate its versatility and natural language understanding.`,
+        neutral: `${brand} is a popular AI assistant with various capabilities. It has both strengths and limitations, like any AI tool. Users report mixed experiences depending on their specific use cases and expectations.`,
+        comparison: `${brand} stands out for its conversational depth and creative capabilities. Compared to alternatives like Claude and Gemini, it offers strong general-purpose assistance with particular strengths in creative writing and brainstorming.`
+      },
+      'claude': {
+        positive: `${brand} is known for its thoughtful, well-reasoned responses and strong focus on safety and helpfulness. It excels at nuanced analysis, maintaining consistent quality, and providing balanced perspectives on complex topics.`,
+        neutral: `${brand} is an AI assistant that emphasizes safety and thoughtful responses. It has particular strengths in certain areas while being more conservative in others.`,
+        comparison: `${brand} differentiates itself through its focus on helpful, harmless, and honest responses. Compared to ChatGPT and Gemini, it often provides more nuanced analysis and maintains consistent quality across interactions.`
+      },
+      'gemini': {
+        positive: `${brand} offers strong multimodal capabilities and real-time web access, making it valuable for current information and diverse content types. It integrates well with Google's ecosystem and provides up-to-date responses.`,
+        neutral: `${brand} is Google's AI assistant with web connectivity and multimodal features. It has specific strengths particularly around current information access.`,
+        comparison: `${brand} stands out for its real-time web access and integration with Google services. Compared to ChatGPT and Claude, it excels at providing current information and handling diverse media types.`
+      },
+      'tesla': {
+        positive: `${brand} is widely recognized as a pioneer in electric vehicles and autonomous driving technology. The company has revolutionized the automotive industry and maintains strong brand loyalty among customers.`,
+        neutral: `${brand} is a major player in the electric vehicle market with both notable achievements and ongoing challenges in various areas.`,
+        comparison: `${brand} leads in EV innovation and autonomous driving technology. Compared to traditional automakers, it has successfully positioned itself as a technology-forward brand.`
+      }
+    };
+
+    // Default response for unknown brands
+    const defaultResponse = {
+      positive: `${brand} is a notable player in its field with various strengths and capabilities that serve different user needs and use cases.`,
+      neutral: `${brand} is a brand/tool that has both strengths and limitations, with user experiences varying based on specific needs and expectations.`,
+      comparison: `${brand} has its unique position in the market with specific strengths that differentiate it from competitors in various ways.`
+    };
+
+    const brandData = brandResponses[lowerBrand] || defaultResponse;
+
+    // Choose response type based on prompt characteristics
+    let responseType = 'neutral';
+    if (isRecommendation || isEvaluation) {
+      // Simulate realistic mention rates - some brands get more positive coverage
+      const positiveBrands = ['chatgpt', 'claude', 'tesla', 'apple'];
+      responseType = positiveBrands.includes(lowerBrand) ? 'positive' : 'neutral';
+    } else if (isComparison) {
+      responseType = 'comparison';
+    }
+
+    const responseText = responseType === 'positive' ? brandData.positive :
+                         responseType === 'comparison' ? brandData.comparison :
+                         brandData.neutral;
+
+    return {
+      base: responseText,
+      sentiment: responseType === 'positive' ? 'positive' : responseType === 'comparison' ? 'neutral' : 'neutral'
+    };
   }
 
   // Step 3: Analyze brand mentions in responses

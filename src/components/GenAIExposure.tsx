@@ -129,8 +129,17 @@ export function GenAIExposure() {
       {loading && (
         <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
           <div className="inline-flex items-center justify-center w-8 h-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600 mb-4"></div>
-          <p className="text-gray-600">Analyzing brand exposure across GenAI tools...</p>
-          <p className="text-sm text-gray-500 mt-2">This may take 30-60 seconds per brand</p>
+          <p className="text-gray-600">Generating dynamic prompts and analyzing brand exposure...</p>
+          <div className="mt-4 text-left max-w-2xl mx-auto">
+            <p className="text-sm text-gray-500 mb-2">Process:</p>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>✓ Analyzing brand context and competitors</li>
+              <li>✓ Generating personalized prompts for each category</li>
+              <li>⏳ Querying ChatGPT, Gemini, Claude APIs...</li>
+              <li>⏳ Analyzing responses for brand mentions and sentiment</li>
+            </ul>
+          </div>
+          <p className="text-sm text-gray-500 mt-4">This may take 30-60 seconds per brand</p>
         </div>
       )}
 
@@ -254,9 +263,29 @@ export function GenAIExposure() {
                 </div>
               </div>
 
+              {/* Dynamic Prompts Used */}
+              <div className="mt-6">
+                <h4 className="text-lg font-medium text-gray-900 mb-3">Generated Prompts (Sample)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {selectedCategories.slice(0, 2).map((category) => (
+                    <div key={category} className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        <span className="text-sm font-medium text-blue-800 capitalize">
+                          {category.replace('-', ' ')} Category
+                        </span>
+                      </div>
+                      <p className="text-sm text-blue-700 italic">
+                        &quot;What do you think about {result.targetBrand} compared to other {category === 'general-ai' ? 'AI tools' : category} available today?&quot;
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* Context Examples */}
               <div className="mt-6">
-                <h4 className="text-lg font-medium text-gray-900 mb-3">Mention Examples</h4>
+                <h4 className="text-lg font-medium text-gray-900 mb-3">AI Response Examples</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {Object.entries(result.aiToolResults).map(([tool, analysis]) => (
                     analysis.context.length > 0 && (
@@ -271,7 +300,7 @@ export function GenAIExposure() {
                           </span>
                         </div>
                         <p className="text-sm text-gray-700 italic">
-                          &quot;{analysis.context[0]}&quot;
+                          &quot;{analysis.context[0]?.substring(0, 150)}...&quot;
                         </p>
                       </div>
                     )
@@ -319,15 +348,22 @@ export function GenAIExposure() {
         <div className="flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
           <div className="text-sm text-blue-800">
-            <p className="font-medium mb-1">How GenAI Exposure Analysis Works:</p>
+            <p className="font-medium mb-1">Dynamic GenAI Exposure Analysis:</p>
             <ul className="list-disc list-inside space-y-1 text-blue-700">
-              <li><strong>Step 1:</strong> Generate category-specific prompts for each brand</li>
-              <li><strong>Step 2:</strong> Query ChatGPT, Gemini, Claude APIs and web search</li>
-              <li><strong>Step 3:</strong> Analyze responses for brand mentions and sentiment</li>
-              <li><strong>Step 4:</strong> Calculate exposure rates and competitive rankings</li>
+              <li><strong>Step 1:</strong> Analyze brand context and identify competitors</li>
+              <li><strong>Step 2:</strong> Generate personalized prompts targeting the specific brand</li>
+              <li><strong>Step 3:</strong> Query ChatGPT, Gemini, Claude APIs with dynamic prompts</li>
+              <li><strong>Step 4:</strong> Analyze responses for brand mentions, context, and sentiment</li>
+              <li><strong>Step 5:</strong> Calculate exposure rates and competitive positioning</li>
             </ul>
+            <div className="mt-3 p-2 bg-blue-100 rounded">
+              <p className="text-xs text-blue-800">
+                <strong>New:</strong> Prompts are now generated dynamically based on your search query, 
+                making questions more relevant and targeted to each specific brand.
+              </p>
+            </div>
             <p className="mt-2 text-xs">
-              * API keys required for real data. Currently using mock responses for demonstration.
+              * API keys required for real data. Currently using intelligent mock responses for demonstration.
             </p>
           </div>
         </div>
